@@ -85,6 +85,17 @@ var (
 	_ taskrunreconciler.Interface = (*Reconciler)(nil)
 )
 
+// call metrics.DurationAndCount and metrics.CloudEvents function
+// and log message if an error is found.
+func (c *Reconciler) runDurationAndCount (tr *v1beta1.TaskRun, metrics *taskrunmetrics.Recorder, logger *zap.SugaredLogger) {
+	if err := metrics.DurationAndCount(tr); err != nil {
+		logger.Warnf("Failed to log the metrics : %v", err)
+	}
+	if err := metrics.CloudEvents(tr); err != nil {
+		logger.Warnf("Failed to log the metrics : %v", err)
+	}
+}
+
 // ReconcileKind compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Task Run
 // resource with the current status of the resource.
@@ -132,17 +143,11 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 		}
 
 		if err := c.stopSidecars(ctx, tr); err != nil {
+			// metrics count for failed taskrun
+			go c.runDurationAndCount(tr, c.metrics, logger)
 			return err
 		}
 
-		go func(metrics *taskrunmetrics.Recorder) {
-			if err := metrics.DurationAndCount(tr); err != nil {
-				logger.Warnf("Failed to log the metrics : %v", err)
-			}
-			if err := metrics.CloudEvents(tr); err != nil {
-				logger.Warnf("Failed to log the metrics : %v", err)
-			}
-		}(c.metrics)
 		return c.finishReconcileUpdateEmitEvents(ctx, tr, before, nil)
 	}
 
@@ -150,6 +155,10 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 	if tr.IsCancelled() {
 		message := fmt.Sprintf("TaskRun %q was cancelled", tr.Name)
 		err := c.failTaskRun(ctx, tr, v1beta1.TaskRunReasonCancelled, message)
+
+		// metrics count for failed taskrun
+		go c.runDurationAndCount(tr, c.metrics, logger)
+
 		return c.finishReconcileUpdateEmitEvents(ctx, tr, before, err)
 	}
 
@@ -158,6 +167,10 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 	if tr.HasTimedOut(ctx, c.Clock) {
 		message := fmt.Sprintf("TaskRun %q failed to finish within %q", tr.Name, tr.GetTimeout(ctx))
 		err := c.failTaskRun(ctx, tr, v1beta1.TaskRunReasonTimedOut, message)
+
+		// metrics count for failed taskrun
+		go c.runDurationAndCount(tr, c.metrics, logger)
+
 		return c.finishReconcileUpdateEmitEvents(ctx, tr, before, err)
 	}
 
@@ -166,6 +179,9 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 	_, rtr, err := c.prepare(ctx, tr)
 	if err != nil {
 		logger.Errorf("TaskRun prepare error: %v", err.Error())
+		// metrics count for failed taskrun
+		go c.runDurationAndCount(tr, c.metrics, logger)
+
 		// We only return an error if update failed, otherwise we don't want to
 		// reconcile an invalid TaskRun anymore
 		return c.finishReconcileUpdateEmitEvents(ctx, tr, nil, err)
@@ -178,6 +194,9 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1beta1.TaskRun) pkg
 	// updates regardless of whether the reconciliation errored out.
 	if err = c.reconcile(ctx, tr, rtr); err != nil {
 		logger.Errorf("Reconcile: %v", err.Error())
+
+		// metrics count for failed taskrun
+		go c.runDurationAndCount(tr, c.metrics, logger)
 	}
 
 	// Emit events (only when ConditionSucceeded was changed)
@@ -441,7 +460,14 @@ func (c *Reconciler) reconcile(ctx context.Context, tr *v1beta1.TaskRun, rtr *re
 		return err
 	}
 
-	logger.Infof("Successfully reconciled taskrun %s/%s with status: %#v", tr.Name, tr.Namespace, tr.Status.GetCondition(apis.ConditionSucceeded))
+	after := tr.Status.GetCondition(apis.ConditionSucceeded)
+	logger.Infof("Successfully reconciled taskrun %s/%s with status: %#v", tr.Name, tr.Namespace, after)
+
+	if after.Status != corev1.ConditionUnknown {
+		// metrics count for succeeded and failed taskrun
+		go c.runDurationAndCount(tr, c.metrics, logger)
+	}
+
 	return nil
 }
 
