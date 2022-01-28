@@ -137,6 +137,15 @@ var (
 	_ pipelinerunreconciler.Interface = (*Reconciler)(nil)
 )
 
+
+// call metrics.DurationAndCount function, and log message if an error is found.
+func (c *Reconciler) runDurationAndCount (pr *v1beta1.PipelineRun, metrics *pipelinerunmetrics.Recorder, logger *zap.SugaredLogger) {
+	err := metrics.DurationAndCount(pr)
+	if err != nil {
+		logger.Warnf("Failed to log the metrics : %v", err)
+	}
+}
+
 // ReconcileKind compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the Pipeline Run
 // resource with the current status of the resource.
@@ -172,6 +181,10 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, pr *v1beta1.PipelineRun)
 		logger.Errorf("Failed to fetch pipeline func for pipeline %s: %w", pr.Spec.PipelineRef.Name, err)
 		pr.Status.MarkFailed(ReasonCouldntGetPipeline, "Error retrieving pipeline for pipelinerun %s/%s: %s",
 			pr.Namespace, pr.Name, err)
+
+		// metrics count for failed pipelinerun
+		go c.runDurationAndCount(pr, c.metrics, logger)
+
 		return c.finishReconcileUpdateEmitEvents(ctx, pr, before, nil)
 	}
 
@@ -194,12 +207,7 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, pr *v1beta1.PipelineRun)
 			logger.Errorf("Failed to update Run status for PipelineRun %s: %v", pr.Name, err)
 			return c.finishReconcileUpdateEmitEvents(ctx, pr, before, err)
 		}
-		go func(metrics *pipelinerunmetrics.Recorder) {
-			err := metrics.DurationAndCount(pr)
-			if err != nil {
-				logger.Warnf("Failed to log the metrics : %v", err)
-			}
-		}(c.metrics)
+
 		return c.finishReconcileUpdateEmitEvents(ctx, pr, before, nil)
 	}
 
@@ -226,6 +234,10 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, pr *v1beta1.PipelineRun)
 	// updates regardless of whether the reconciliation errored out.
 	if err = c.reconcile(ctx, pr, getPipelineFunc); err != nil {
 		logger.Errorf("Reconcile error: %v", err.Error())
+
+		// metrics count for failed pipelinerun
+		go c.runDurationAndCount(pr, c.metrics, logger)
+
 	}
 
 	if err = c.finishReconcileUpdateEmitEvents(ctx, pr, before, err); err != nil {
@@ -575,6 +587,12 @@ func (c *Reconciler) reconcile(ctx context.Context, pr *v1beta1.PipelineRun, get
 	}
 
 	logger.Infof("PipelineRun %s status is being set to %s", pr.Name, after)
+
+	if after.Status != corev1.ConditionUnknown {
+		// metrics count for succeeded and failed pipelinerun
+		go c.runDurationAndCount(pr, c.metrics, logger)
+	}
+
 	return nil
 }
 
