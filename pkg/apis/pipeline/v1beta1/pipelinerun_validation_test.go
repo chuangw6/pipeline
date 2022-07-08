@@ -316,7 +316,7 @@ func TestPipelineRun_Validate(t *testing.T) {
 				PipelineRef: &v1beta1.PipelineRef{ResolverRef: v1beta1.ResolverRef{Resolver: "git"}},
 			},
 		},
-		wc: enableAlphaAPIFields,
+		wc: config.EnableAlphaAPIFields,
 	}, {
 		name: "alpha feature: valid resolver with resource parameters",
 		pr: v1beta1.PipelineRun{
@@ -333,7 +333,7 @@ func TestPipelineRun_Validate(t *testing.T) {
 				}}}},
 			},
 		},
-		wc: enableAlphaAPIFields,
+		wc: config.EnableAlphaAPIFields,
 	}, {
 		name: "alpha feature: sidecar and step overrides",
 		pr: v1beta1.PipelineRun{
@@ -361,7 +361,7 @@ func TestPipelineRun_Validate(t *testing.T) {
 				},
 			},
 		},
-		wc: enableAlphaAPIFields,
+		wc: config.EnableAlphaAPIFields,
 	}}
 
 	for _, ts := range tests {
@@ -474,7 +474,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMissingField("resolver").ViaField("pipelineRef"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "pipelineref resolver disallowed in conjunction with pipelineref name",
 		spec: v1beta1.PipelineRunSpec{
@@ -486,7 +486,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMultipleOneOf("name", "resolver").ViaField("pipelineRef"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "pipelineref resolver disallowed in conjunction with pipelineref bundle",
 		spec: v1beta1.PipelineRunSpec{
@@ -498,7 +498,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMultipleOneOf("bundle", "resolver").ViaField("pipelineRef"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "duplicate stepOverride names",
 		spec: v1beta1.PipelineRunSpec{
@@ -513,7 +513,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMultipleOneOf("taskRunSpecs[0].stepOverrides[1].name"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "stepOverride disallowed without alpha feature gate",
 		spec: v1beta1.PipelineRunSpec{
@@ -564,7 +564,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMissingField("taskRunSpecs[0].stepOverrides[0].name"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "duplicate sidecarOverride names",
 		spec: v1beta1.PipelineRunSpec{
@@ -579,7 +579,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMultipleOneOf("taskRunSpecs[0].sidecarOverrides[1].name"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "missing sidecarOverride name",
 		spec: v1beta1.PipelineRunSpec{
@@ -596,7 +596,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			},
 		},
 		wantErr:     apis.ErrMissingField("taskRunSpecs[0].sidecarOverrides[0].name"),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "invalid both step-level (stepOverrides.resources) and task-level (taskRunSpecs.resources) resource requirements configured",
 		spec: v1beta1.PipelineRunSpec{
@@ -620,7 +620,7 @@ func TestPipelineRunSpec_Invalidate(t *testing.T) {
 			"taskRunSpecs[0].stepOverrides.resources",
 			"taskRunSpecs[0].computeResources",
 		),
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "computeResources disallowed without alpha feature gate",
 		spec: v1beta1.PipelineRunSpec{
@@ -682,7 +682,7 @@ func TestPipelineRunSpec_Validate(t *testing.T) {
 				},
 			}},
 		},
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}, {
 		name: "valid sidecar and task-level (taskRunSpecs.resources) resource requirements configured",
 		spec: v1beta1.PipelineRunSpec{
@@ -705,7 +705,7 @@ func TestPipelineRunSpec_Validate(t *testing.T) {
 				}},
 			}},
 		},
-		withContext: enableAlphaAPIFields,
+		withContext: config.EnableAlphaAPIFields,
 	}}
 
 	for _, ps := range tests {
@@ -987,17 +987,4 @@ func enableTektonOCIBundles(t *testing.T) func(context.Context) context.Context 
 		})
 		return s.ToContext(ctx)
 	}
-}
-
-func enableAlphaAPIFields(ctx context.Context) context.Context {
-	featureFlags, _ := config.NewFeatureFlagsFromMap(map[string]string{
-		"enable-api-fields": "alpha",
-	})
-	cfg := &config.Config{
-		Defaults: &config.Defaults{
-			DefaultTimeoutMinutes: 60,
-		},
-		FeatureFlags: featureFlags,
-	}
-	return config.ToContext(ctx, cfg)
 }
