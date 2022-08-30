@@ -347,7 +347,7 @@ func (c *Reconciler) prepare(ctx context.Context, tr *v1beta1.TaskRun) (*v1beta1
 		return nil, nil, controller.NewPermanentError(err)
 	default:
 		// Store the fetched TaskSpec on the TaskRun for auditing
-		if err := storeTaskSpecAndMergeMeta(tr, taskSpec, taskMeta); err != nil {
+		if err := storeTaskSpecAndMergeMeta(ctx, tr, taskSpec, taskMeta); err != nil {
 			logger.Errorf("Failed to store TaskSpec on TaskRun.Statusfor taskrun %s: %v", tr.Name, err)
 		}
 	}
@@ -914,10 +914,14 @@ func applyVolumeClaimTemplates(workspaceBindings []v1beta1.WorkspaceBinding, own
 	return taskRunWorkspaceBindings
 }
 
-func storeTaskSpecAndMergeMeta(tr *v1beta1.TaskRun, ts *v1beta1.TaskSpec, meta *metav1.ObjectMeta) error {
+func storeTaskSpecAndMergeMeta(ctx context.Context, tr *v1beta1.TaskRun, ts *v1beta1.TaskSpec, meta *resources.ResolvedObjectMeta) error {
 	// Only store the TaskSpec once, if it has never been set before.
 	if tr.Status.TaskSpec == nil {
 		tr.Status.TaskSpec = ts
+		if meta == nil {
+			return nil
+		}
+
 		// Propagate annotations from Task to TaskRun. TaskRun annotations take precedences over Task.
 		tr.ObjectMeta.Annotations = kmap.Union(meta.Annotations, tr.ObjectMeta.Annotations)
 		// Propagate labels from Task to TaskRun. TaskRun labels take precedences over Task.
@@ -928,6 +932,18 @@ func storeTaskSpecAndMergeMeta(tr *v1beta1.TaskRun, ts *v1beta1.TaskSpec, meta *
 			} else {
 				tr.ObjectMeta.Labels[pipeline.TaskLabelKey] = meta.Name
 			}
+		}
+	}
+
+	// Propagate ConfigSource from remote resolution to TaskRun Status
+	// This lives outside of the status.spec check to avoid the case where only the spec is available in the first reconcile and source comes in next reconcile.
+	cfg := config.FromContextOrDefaults(ctx)
+	if cfg.FeatureFlags.EnableProvenanceInStatus && meta != nil && meta.ConfigSource != nil {
+		if tr.Status.Provenance == nil {
+			tr.Status.Provenance = &v1beta1.Provenance{}
+		}
+		if tr.Status.Provenance.ConfigSource == nil {
+			tr.Status.Provenance.ConfigSource = meta.ConfigSource
 		}
 	}
 	return nil

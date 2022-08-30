@@ -204,13 +204,17 @@ func TestOCIResolver(t *testing.T) {
 			}
 
 			for _, obj := range tc.objs {
-				actual, err := resolver.Get(context.Background(), strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind), getObjectName(obj))
+				actual, source, err := resolver.Get(context.Background(), strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind), getObjectName(obj))
 				if err != nil {
 					t.Fatalf("could not retrieve object from image: %#v", err)
 				}
 
 				if d := cmp.Diff(actual, obj); d != "" {
 					t.Error(diff.PrintWantGot(d))
+				}
+
+				if source != nil {
+					t.Errorf("expected source is nil, but received %v", source)
 				}
 			}
 		})

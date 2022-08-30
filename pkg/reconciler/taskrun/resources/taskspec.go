@@ -26,7 +26,7 @@ import (
 )
 
 // GetTask is a function used to retrieve Tasks.
-type GetTask func(context.Context, string) (v1beta1.TaskObject, error)
+type GetTask func(context.Context, string) (v1beta1.TaskObject, *v1beta1.ConfigSource, error)
 
 // GetTaskRun is a function used to retrieve TaskRuns
 type GetTaskRun func(string) (*v1beta1.TaskRun, error)
@@ -34,26 +34,37 @@ type GetTaskRun func(string) (*v1beta1.TaskRun, error)
 // GetClusterTask is a function that will retrieve the Task from name and namespace.
 type GetClusterTask func(name string) (v1beta1.TaskObject, error)
 
+// ResolvedObjectMeta contains both ObjectMeta and the metadata that identifies the source where the resource came from.
+type ResolvedObjectMeta struct {
+	*metav1.ObjectMeta `json:",omitempty"`
+	// ConfigSource identifies where the spec came from.
+	ConfigSource *v1beta1.ConfigSource `json:",omitempty"`
+}
+
 // GetTaskData will retrieve the Task metadata and Spec associated with the
 // provided TaskRun. This can come from a reference Task or from the TaskRun's
 // metadata and embedded TaskSpec.
-func GetTaskData(ctx context.Context, taskRun *v1beta1.TaskRun, getTask GetTask) (*metav1.ObjectMeta, *v1beta1.TaskSpec, error) {
+func GetTaskData(ctx context.Context, taskRun *v1beta1.TaskRun, getTask GetTask) (*ResolvedObjectMeta, *v1beta1.TaskSpec, error) {
 	taskMeta := metav1.ObjectMeta{}
+	var configSource *v1beta1.ConfigSource
 	taskSpec := v1beta1.TaskSpec{}
 	switch {
 	case taskRun.Spec.TaskRef != nil && taskRun.Spec.TaskRef.Name != "":
 		// Get related task for taskrun
-		t, err := getTask(ctx, taskRun.Spec.TaskRef.Name)
+		t, source, err := getTask(ctx, taskRun.Spec.TaskRef.Name)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error when listing tasks for taskRun %s: %w", taskRun.Name, err)
 		}
 		taskMeta = t.TaskMetadata()
 		taskSpec = t.TaskSpec()
+		configSource = source
 	case taskRun.Spec.TaskSpec != nil:
 		taskMeta = taskRun.ObjectMeta
 		taskSpec = *taskRun.Spec.TaskSpec
+		// TODO: if we want to set source for embedded taskspec, set it here.
+		// https://github.com/tektoncd/pipeline/issues/5522
 	case taskRun.Spec.TaskRef != nil && taskRun.Spec.TaskRef.Resolver != "":
-		task, err := getTask(ctx, taskRun.Name)
+		task, source, err := getTask(ctx, taskRun.Name)
 		switch {
 		case err != nil:
 			return nil, nil, err
@@ -63,10 +74,14 @@ func GetTaskData(ctx context.Context, taskRun *v1beta1.TaskRun, getTask GetTask)
 			taskMeta = task.TaskMetadata()
 			taskSpec = task.TaskSpec()
 		}
+		configSource = source
 	default:
 		return nil, nil, fmt.Errorf("taskRun %s not providing TaskRef or TaskSpec", taskRun.Name)
 	}
 
 	taskSpec.SetDefaults(ctx)
-	return &taskMeta, &taskSpec, nil
+	return &ResolvedObjectMeta{
+		ObjectMeta:   &taskMeta,
+		ConfigSource: configSource,
+	}, &taskSpec, nil
 }
