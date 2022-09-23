@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
 	"github.com/tektoncd/pipeline/pkg/resolution/common"
 	"github.com/tektoncd/pipeline/pkg/resolution/resolver/framework"
@@ -89,5 +90,10 @@ func (*myResolvedResource) Data() []byte {
 
 // Annotations returns any metadata needed alongside the data. None atm.
 func (*myResolvedResource) Annotations() map[string]string {
+	return nil
+}
+
+// Source returns the source references of the data. None atm.
+func (*myResolvedResource) Source() *slsa.ConfigSource {
 	return nil
 }

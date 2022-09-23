@@ -19,6 +19,8 @@ package framework
 import (
 	"context"
 	"time"
+
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
 // Resolver is the interface to implement for type-specific resource
@@ -94,4 +96,5 @@ type TimedResolution interface {
 type ResolvedResource interface {
 	Data() []byte
 	Annotations() map[string]string
+	Source() *slsa.ConfigSource
 }

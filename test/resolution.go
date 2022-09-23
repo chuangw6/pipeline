@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	resolution "github.com/tektoncd/pipeline/pkg/resolution/resource"
 )
 
@@ -79,6 +80,8 @@ type ResolvedResource struct {
 	DataErr error
 	// Annotations to return when resolution is complete.
 	ResolvedAnnotations map[string]string
+	// ResolvedSource to return the source reference of the remote data
+	ResolvedSource *slsa.ConfigSource
 }
 
 // Data implements resolution.ResolvedResource and returns the mock
@@ -91,4 +94,10 @@ func (r *ResolvedResource) Data() ([]byte, error) {
 // the mock annotations given to it on initialization.
 func (r *ResolvedResource) Annotations() map[string]string {
 	return r.ResolvedAnnotations
+}
+
+// Source implements resolution.ResolvedSource and returns the mock
+// source reference of the resolved data
+func (r *ResolvedResource) Source() *slsa.ConfigSource {
+	return r.ResolvedSource
 }

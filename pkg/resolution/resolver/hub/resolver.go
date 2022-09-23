@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	resolverconfig "github.com/tektoncd/pipeline/pkg/apis/config/resolver"
 	"github.com/tektoncd/pipeline/pkg/resolution/common"
 	"github.com/tektoncd/pipeline/pkg/resolution/resolver/framework"
@@ -157,6 +158,12 @@ func (rr *ResolvedHubResource) Data() []byte {
 
 // Annotations returns any metadata needed alongside the data. None atm.
 func (*ResolvedHubResource) Annotations() map[string]string {
+	return nil
+}
+
+// Source is the source reference of the remote data that can be used as a part
+// of the provenance data.
+func (rr *ResolvedHubResource) Source() *slsa.ConfigSource {
 	return nil
 }
 

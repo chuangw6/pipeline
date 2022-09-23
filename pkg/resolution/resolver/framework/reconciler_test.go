@@ -44,6 +44,7 @@ import (
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/system"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	_ "knative.dev/pkg/system/testing" // Setup system.Namespace()
 )
 
@@ -111,6 +112,12 @@ func TestReconcile(t *testing.T) {
 				"bar": {
 					Content:       "some content",
 					AnnotationMap: map[string]string{"foo": "bar"},
+					ContentSource: &slsa.ConfigSource{
+						URI: "https://abc.com",
+						Digest: slsa.DigestSet{
+							"sha1": "xyz",
+						},
+					},
 				},
 			},
 			expectedStatus: &v1alpha1.ResolutionRequestStatus{
@@ -121,6 +128,12 @@ func TestReconcile(t *testing.T) {
 				},
 				ResolutionRequestStatusFields: v1alpha1.ResolutionRequestStatusFields{
 					Data: base64.StdEncoding.Strict().EncodeToString([]byte("some content")),
+					Source: &slsa.ConfigSource{
+						URI: "https://abc.com",
+						Digest: slsa.DigestSet{
+							"sha1": "xyz",
+						},
+					},
 				},
 			},
 		}, {

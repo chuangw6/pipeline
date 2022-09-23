@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"time"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
 	rrclient "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned"
 	rrv1alpha1 "github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1alpha1"
@@ -192,8 +193,9 @@ func (r *Reconciler) MarkFailed(ctx context.Context, rr *v1alpha1.ResolutionRequ
 // a ResolutionRequest with its data and annotations once successfully
 // resolved.
 type statusDataPatch struct {
-	Annotations map[string]string `json:"annotations"`
-	Data        string            `json:"data"`
+	Annotations map[string]string  `json:"annotations"`
+	Data        string             `json:"data"`
+	Source      *slsa.ConfigSource `json:"source"`
 }
 
 func (r *Reconciler) writeResolvedData(ctx context.Context, rr *v1alpha1.ResolutionRequest, resource ResolvedResource) error {
@@ -202,6 +204,7 @@ func (r *Reconciler) writeResolvedData(ctx context.Context, rr *v1alpha1.Resolut
 		"status": {
 			Data:        encodedData,
 			Annotations: resource.Annotations(),
+			Source:      resource.Source(),
 		},
 	})
 	if err != nil {

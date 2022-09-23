@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	"github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
 	rrclient "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned"
 	rrlisters "github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1alpha1"
@@ -151,4 +152,8 @@ func (r readOnlyResolutionRequest) Data() ([]byte, error) {
 		return nil, fmt.Errorf("error decoding data from base64: %w", err)
 	}
 	return decodedBytes, nil
+}
+
+func (r readOnlyResolutionRequest) Source() *slsa.ConfigSource {
+	return r.req.Status.Source
 }

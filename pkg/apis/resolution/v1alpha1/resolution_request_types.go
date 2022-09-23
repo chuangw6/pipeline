@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
@@ -78,6 +79,9 @@ type ResolutionRequestStatusFields struct {
 	// of the requested resource in-lined into the ResolutionRequest
 	// object.
 	Data string `json:"data"`
+	// Source is the source reference of the remote data that can be used as
+	// a part of the provenance data.
+	Source *slsa.ConfigSource `json:"source"`
 }
 
 // GetStatus implements KRShaped.

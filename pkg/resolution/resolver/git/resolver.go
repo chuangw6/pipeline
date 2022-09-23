@@ -43,6 +43,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/logging"
+
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
 const (
@@ -327,6 +329,12 @@ func (r *resolvedGitResource) Annotations() map[string]string {
 	}
 
 	return m
+}
+
+// Source is the source reference of the remote data that can be used as a part
+// of the provenance data.
+func (r *resolvedGitResource) Source() *slsa.ConfigSource {
+	return nil
 }
 
 type secretCacheKey struct {

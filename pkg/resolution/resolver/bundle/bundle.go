@@ -25,6 +25,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
+	"github.com/tektoncd/pipeline/pkg/resolution/resolver/framework"
 )
 
 const (
@@ -45,7 +47,10 @@ type RequestOptions struct {
 type ResolvedResource struct {
 	data        []byte
 	annotations map[string]string
+	source      *slsa.ConfigSource
 }
+
+var _ framework.ResolvedResource = &ResolvedResource{}
 
 // Data returns the bytes of the resource fetched from the bundle.
 func (br *ResolvedResource) Data() []byte {
@@ -56,6 +61,12 @@ func (br *ResolvedResource) Data() []byte {
 // to resolution.
 func (br *ResolvedResource) Annotations() map[string]string {
 	return br.annotations
+}
+
+// Source is the source reference of the remote data that can be used as a part
+// of the provenance data.
+func (br *ResolvedResource) Source() *slsa.ConfigSource {
+	return br.source
 }
 
 // GetEntry accepts a keychain and options for the request and returns

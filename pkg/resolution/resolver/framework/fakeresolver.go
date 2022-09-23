@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	resolutioncommon "github.com/tektoncd/pipeline/pkg/resolution/common"
 )
 
@@ -49,6 +50,7 @@ var _ Resolver = &FakeResolver{}
 type FakeResolvedResource struct {
 	Content       string
 	AnnotationMap map[string]string
+	ContentSource *slsa.ConfigSource
 	ErrorWith     string
 	WaitFor       time.Duration
 }
@@ -61,6 +63,12 @@ func (f *FakeResolvedResource) Data() []byte {
 // Annotations returns the FakeResolvedResource's AnnotationMap field.
 func (f *FakeResolvedResource) Annotations() map[string]string {
 	return f.AnnotationMap
+}
+
+// Source is the source reference of the remote data that can be used as a part
+// of the provenance data.
+func (f *FakeResolvedResource) Source() *slsa.ConfigSource {
+	return f.ContentSource
 }
 
 // FakeResolver implements a framework.Resolver that can fetch pre-configured strings based on a parameter value, or return

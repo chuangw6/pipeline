@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 	resolverconfig "github.com/tektoncd/pipeline/pkg/apis/config/resolver"
 	clientset "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
@@ -177,6 +178,12 @@ func (r *ResolvedClusterResource) Annotations() map[string]string {
 		ResourceNameAnnotation:      r.Name,
 		ResourceNamespaceAnnotation: r.Namespace,
 	}
+}
+
+// Source is the source reference of the remote data that can be used as a part
+// of the provenance data.
+func (r ResolvedClusterResource) Source() *slsa.ConfigSource {
+	return nil
 }
 
 func populateParamsWithDefaults(ctx context.Context, params map[string]string) (map[string]string, error) {
