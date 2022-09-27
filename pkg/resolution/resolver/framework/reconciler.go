@@ -194,6 +194,7 @@ func (r *Reconciler) MarkFailed(ctx context.Context, rr *v1alpha1.ResolutionRequ
 type statusDataPatch struct {
 	Annotations map[string]string `json:"annotations"`
 	Data        string            `json:"data"`
+	Source      string            `json:"source"`
 }
 
 func (r *Reconciler) writeResolvedData(ctx context.Context, rr *v1alpha1.ResolutionRequest, resource ResolvedResource) error {
@@ -202,6 +203,7 @@ func (r *Reconciler) writeResolvedData(ctx context.Context, rr *v1alpha1.Resolut
 		"status": {
 			Data:        encodedData,
 			Annotations: resource.Annotations(),
+			Source:      "foo/bar",
 		},
 	})
 	if err != nil {

@@ -78,6 +78,8 @@ type ResolutionRequestStatusFields struct {
 	// of the requested resource in-lined into the ResolutionRequest
 	// object.
 	Data string `json:"data"`
+	// Source is for testing
+	Source string `json:"source,omitempty"`
 }
 
 // GetStatus implements KRShaped.

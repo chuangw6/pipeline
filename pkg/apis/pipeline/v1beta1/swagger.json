@@ -338,6 +338,10 @@
           "description": "ObservedGeneration is the 'Generation' of the Service that was last processed by the controller.",
           "type": "integer",
           "format": "int64"
+        },
+        "source": {
+          "description": "Source is for testing",
+          "type": "string"
         }
       }
     },
@@ -352,6 +356,10 @@
           "description": "Data is a string representation of the resolved content of the requested resource in-lined into the ResolutionRequest object.",
           "type": "string",
           "default": ""
+        },
+        "source": {
+          "description": "Source is for testing",
+          "type": "string"
         }
       }
     },

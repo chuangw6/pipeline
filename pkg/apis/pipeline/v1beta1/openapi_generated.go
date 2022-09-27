@@ -5792,6 +5792,13 @@ func schema_pkg_apis_resolution_v1alpha1_ResolutionRequestStatus(ref common.Refe
 							Format:      "",
 						},
 					},
+					"source": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Source is for testing",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"data"},
 			},
@@ -5812,6 +5819,13 @@ func schema_pkg_apis_resolution_v1alpha1_ResolutionRequestStatusFields(ref commo
 						SchemaProps: spec.SchemaProps{
 							Description: "Data is a string representation of the resolved content of the requested resource in-lined into the ResolutionRequest object.",
 							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"source": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Source is for testing",
 							Type:        []string{"string"},
 							Format:      "",
 						},
