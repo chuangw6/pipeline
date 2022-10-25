@@ -19,7 +19,9 @@ package cluster
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -190,6 +192,7 @@ func TestResolve(t *testing.T) {
 			Name:            "example-task",
 			Namespace:       "task-ns",
 			ResourceVersion: "00002",
+			UID:             "a123",
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(pipelinev1beta1.NamespacedTaskKind),
@@ -207,12 +210,17 @@ func TestResolve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("couldn't marshal task: %v", err)
 	}
+	taskSpec, err := yaml.Marshal(exampleTask.Spec)
+	if err != nil {
+		t.Fatalf("couldn't marshal task spec: %v", err)
+	}
 
 	examplePipeline := &pipelinev1beta1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "example-pipeline",
 			Namespace:       defaultNS,
 			ResourceVersion: "00001",
+			UID:             "b123",
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pipeline",
@@ -231,6 +239,10 @@ func TestResolve(t *testing.T) {
 	pipelineAsYAML, err := yaml.Marshal(examplePipeline)
 	if err != nil {
 		t.Fatalf("couldn't marshal pipeline: %v", err)
+	}
+	pipelineSpec, err := yaml.Marshal(examplePipeline.Spec)
+	if err != nil {
+		t.Fatalf("couldn't marshal pipeline spec: %v", err)
 	}
 
 	testCases := []struct {
@@ -252,6 +264,12 @@ func TestResolve(t *testing.T) {
 				Status: duckv1.Status{},
 				ResolutionRequestStatusFields: v1beta1.ResolutionRequestStatusFields{
 					Data: base64.StdEncoding.Strict().EncodeToString(taskAsYAML),
+					Source: &pipelinev1beta1.ConfigSource{
+						URI: "/apis/tekton.dev/v1beta1/namespaces/task-ns/task/example-task@a123",
+						Digest: map[string]string{
+							"sha256": sha256CheckSum(taskSpec),
+						},
+					},
 				},
 			},
 		}, {
@@ -263,6 +281,12 @@ func TestResolve(t *testing.T) {
 				Status: duckv1.Status{},
 				ResolutionRequestStatusFields: v1beta1.ResolutionRequestStatusFields{
 					Data: base64.StdEncoding.Strict().EncodeToString(pipelineAsYAML),
+					Source: &pipelinev1beta1.ConfigSource{
+						URI: "/apis/tekton.dev/v1beta1/namespaces/pipeline-ns/pipeline/example-pipeline@b123",
+						Digest: map[string]string{
+							"sha256": sha256CheckSum(pipelineSpec),
+						},
+					},
 				},
 			},
 		}, {
@@ -273,6 +297,12 @@ func TestResolve(t *testing.T) {
 				Status: duckv1.Status{},
 				ResolutionRequestStatusFields: v1beta1.ResolutionRequestStatusFields{
 					Data: base64.StdEncoding.Strict().EncodeToString(pipelineAsYAML),
+					Source: &pipelinev1beta1.ConfigSource{
+						URI: "/apis/tekton.dev/v1beta1/namespaces/pipeline-ns/pipeline/example-pipeline@b123",
+						Digest: map[string]string{
+							"sha256": sha256CheckSum(pipelineSpec),
+						},
+					},
 				},
 			},
 		}, {
@@ -283,6 +313,12 @@ func TestResolve(t *testing.T) {
 				Status: duckv1.Status{},
 				ResolutionRequestStatusFields: v1beta1.ResolutionRequestStatusFields{
 					Data: base64.StdEncoding.Strict().EncodeToString(taskAsYAML),
+					Source: &pipelinev1beta1.ConfigSource{
+						URI: "/apis/tekton.dev/v1beta1/namespaces/task-ns/task/example-task@a123",
+						Digest: map[string]string{
+							"sha256": sha256CheckSum(taskSpec),
+						},
+					},
 				},
 			},
 		}, {
@@ -452,4 +488,10 @@ func createRequest(kind, name, namespace string) *v1beta1.ResolutionRequest {
 
 func resolverContext() context.Context {
 	return frtesting.ContextWithClusterResolverEnabled(context.Background())
+}
+
+func sha256CheckSum(input []byte) string {
+	h := sha256.New()
+	h.Write(input)
+	return hex.EncodeToString(h.Sum(nil))
 }
