@@ -106,6 +106,7 @@ func (r *Resolver) Resolve(ctx context.Context, origParams []pipelinev1beta1.Par
 	var data []byte
 	var spec []byte
 	var uid string
+	var kind string
 	groupVersion := pipelinev1beta1.SchemeGroupVersion.String()
 
 	switch params[KindParam] {
@@ -116,7 +117,8 @@ func (r *Resolver) Resolve(ctx context.Context, origParams []pipelinev1beta1.Par
 			return nil, err
 		}
 		uid = string(task.UID)
-		task.Kind = "Task"
+		kind = "Task"
+		task.Kind = kind
 		task.APIVersion = groupVersion
 		data, err = yaml.Marshal(task)
 		if err != nil {
@@ -136,7 +138,8 @@ func (r *Resolver) Resolve(ctx context.Context, origParams []pipelinev1beta1.Par
 			return nil, err
 		}
 		uid = string(pipeline.UID)
-		pipeline.Kind = "Pipeline"
+		kind = "Pipeline"
+		pipeline.Kind = kind
 		pipeline.APIVersion = groupVersion
 		data, err = yaml.Marshal(pipeline)
 		if err != nil {
@@ -159,7 +162,7 @@ func (r *Resolver) Resolve(ctx context.Context, origParams []pipelinev1beta1.Par
 		Spec:        spec,
 		Name:        params[NameParam],
 		Namespace:   params[NamespaceParam],
-		ResourceURI: fmt.Sprintf("/apis/%s/namespaces/%s/%s/%s@%s", groupVersion, params[NamespaceParam], params[KindParam], params[NameParam], uid),
+		ResourceURI: fmt.Sprintf("/apis/%s/namespaces/%s/%s/%s@%s", groupVersion, params[NamespaceParam], kind, params[NameParam], uid),
 	}, nil
 }
 
