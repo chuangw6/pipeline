@@ -250,6 +250,7 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, pr *v1.PipelineRun) pkgr
 	// If the pipelinerun is cancelled, cancel tasks and update status
 	if pr.IsCancelled() {
 		err := cancelPipelineRun(ctx, logger, pr, c.PipelineClientSet)
+		logger.Warnf(">>> emitting pipelinerun, name: %v, completion time: %v, condition status: %v, condition ltt: %v", pr.Name, pr.Status.CompletionTime, pr.Status.GetCondition(apis.ConditionSucceeded).Status, pr.Status.GetCondition(apis.ConditionSucceeded).LastTransitionTime)
 		return c.finishReconcileUpdateEmitEvents(ctx, pr, before, err)
 	}
 

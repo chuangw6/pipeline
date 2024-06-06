@@ -163,6 +163,7 @@ func (c *Reconciler) ReconcileKind(ctx context.Context, tr *v1.TaskRun) pkgrecon
 	if tr.IsCancelled() {
 		message := fmt.Sprintf("TaskRun %q was cancelled. %s", tr.Name, tr.Spec.StatusMessage)
 		err := c.failTaskRun(ctx, tr, v1.TaskRunReasonCancelled, message)
+		logger.Warnf(">>> emitting taskrun, name: %v, completion time: %v, condition status: %v, condition ltt: %v", tr.Name, tr.Status.CompletionTime, tr.Status.GetCondition(apis.ConditionSucceeded).Status, tr.Status.GetCondition(apis.ConditionSucceeded).LastTransitionTime)
 		return c.finishReconcileUpdateEmitEvents(ctx, tr, before, err)
 	}
 
